@@ -1,4 +1,6 @@
 package com.Kalai.jobtracker.security;
+
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,36 +15,65 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
-    @Component
-    public class JwtFilter extends OncePerRequestFilter {
+@Component
+public class JwtFilter extends OncePerRequestFilter {
 
-        @Autowired
-        private JwtService jwtService;
+    @Autowired
+    private JwtService jwtService;
 
-        @Autowired
-        private UserDetailsService userDetailsService;
+    @Autowired
+    private UserDetailsService userDetailsService;
 
-        @Override
-        protected void doFilterInternal(
-                HttpServletRequest request,
-                HttpServletResponse response,
-                FilterChain filterChain)
-                throws ServletException, IOException {
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain)
+            throws ServletException, IOException {
 
-            String authHeader = request
-                    .getHeader("Authorization");
-            String token = null;
-            String email = null;
+        // Allow OPTIONS requests through
+        if (request.getMethod()
+                .equals("OPTIONS")) {
+            response.setHeader(
+                    "Access-Control-Allow-Origin",
+                    "http://localhost:3000");
+            response.setHeader(
+                    "Access-Control-Allow-Methods",
+                    "GET, POST, PUT, DELETE, OPTIONS");
+            response.setHeader(
+                    "Access-Control-Allow-Headers",
+                    "*");
+            response.setHeader(
+                    "Access-Control-Allow-Credentials",
+                    "true");
+            response.setStatus(200);
+            return;
+        }
 
-            // Check if token exists in header
+        String authHeader = request
+                .getHeader("Authorization");
+        String token = null;
+        String email = null;
+
+        try {
+            System.out.println("=== JWT FILTER ===");
+            System.out.println("URL: "
+                    + request.getRequestURI());
+            System.out.println("Method: "
+                    + request.getMethod());
+            System.out.println("Auth: "
+                    + authHeader);
+
             if (authHeader != null
-                    && authHeader.startsWith("Bearer ")) {
+                    && authHeader
+                    .startsWith("Bearer ")) {
                 token = authHeader.substring(7);
-                email = jwtService.extractEmail(token);
+                email = jwtService
+                        .extractEmail(token);
             }
 
-            // Validate token
-            if (email != null && SecurityContextHolder
+            if (email != null
+                    && SecurityContextHolder
                     .getContext()
                     .getAuthentication() == null) {
 
@@ -51,23 +82,38 @@ import java.io.IOException;
                                 .loadUserByUsername(email);
 
                 if (jwtService.isTokenValid(
-                        token, userDetails.getUsername())) {
+                        token,
+                        userDetails.getUsername())) {
 
                     UsernamePasswordAuthenticationToken
                             authToken =
                             new UsernamePasswordAuthenticationToken(
-                                    userDetails, null,
-                                    userDetails.getAuthorities());
+                                    userDetails,
+                                    null,
+                                    userDetails
+                                            .getAuthorities());
 
                     authToken.setDetails(
                             new WebAuthenticationDetailsSource()
                                     .buildDetails(request));
 
-                    SecurityContextHolder.getContext()
+                    SecurityContextHolder
+                            .getContext()
                             .setAuthentication(authToken);
+
+                    System.out.println(
+                            "Auth set successfully!");
                 }
             }
-            filterChain.doFilter(request, response);
-        }
-    }
 
+        } catch (ExpiredJwtException e) {
+            System.out.println("Expired: "
+                    + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Error: "
+                    + e.getMessage());
+        }
+
+        filterChain.doFilter(request, response);
+    }
+}
