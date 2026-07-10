@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAllJobs, updateJobStatus, 
          deleteJob, getDashboard } from '../services/api';
@@ -15,9 +15,9 @@ function Dashboard() {
   // Load jobs and stats when page opens
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       
@@ -36,7 +36,7 @@ function Dashboard() {
       console.log('Error:', err);
       setLoading(false);
     }
-};
+},[navigate]);
   
 
   const handleStatusUpdate = async (id, status) => {
