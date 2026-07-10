@@ -12,10 +12,7 @@ function Dashboard() {
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // Load jobs and stats when page opens
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+ 
 
   const fetchData = useCallback(async () => {
     try {
@@ -37,6 +34,11 @@ function Dashboard() {
       setLoading(false);
     }
 },[navigate]);
+
+ // Load jobs and stats when page opens
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
   
 
   const handleStatusUpdate = async (id, status) => {
